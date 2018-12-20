@@ -1,5 +1,9 @@
-name: Elise OctoDat
-description: |
+---
+name: OctoDat
+description: >
   Data Management System for the Elise project
-version: 0.0.1
+version: 0.0.1-rancher1
 category: Big Data
+maintainer: Nathan Valentine <nathan@rancher.com|nrvale0@gmail.com>
+license: Apache2
+projectURL: https://github.com/nrvale0/rancher-cattle-demo
