@@ -1,0 +1,82 @@
+version: '3.2'
+services:
+  zookeeper:
+    image: zookeeper
+    build:
+        context: ./zookeeper-docker
+    ports:
+      - "2181:2181"
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+  kafka:
+    image: kafka
+    build:
+        context: ./kafka-docker
+    ports:
+      - target: 9094
+        published: 9094
+        protocol: tcp
+        mode: host
+    depends_on:
+      - zookeeper
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    links:
+      - zookeeper:zookeeper
+    environment:
+      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "test-topic:1:1"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://_{HOSTNAME_COMMAND}:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  spark:
+    image: spark
+    build:
+        context: ./docker-spark
+    ports:
+      - "7077:7077"
+      - "4040:4040"
+      - "8081:8081"
+      - target: 5002
+        published: 5002
+        protocol: udp
+        mode: host
+      - target: 5001
+        published: 5001
+        protocol: udp
+        mode: host
+    links:
+      - kafka:kafka
+    depends_on:
+      - kafka
+    volumes:
+      - ./data:/var/data
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+
