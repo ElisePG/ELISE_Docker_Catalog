@@ -1,0 +1,9 @@
+---
+name: Elise Classifier
+description: 
+  Data Management System for the Elise project
+version: 0.0.1-rancher1
+category: Big Data
+maintainer: Jonas Pöhler <jonas.poehler@student.uni-siegen.de>
+license: CC-BY-SA
+projectURL: https://github.com/ElisePG/ELISE_Docker_Catalog

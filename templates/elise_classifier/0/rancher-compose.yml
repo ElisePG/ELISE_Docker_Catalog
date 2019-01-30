@@ -1,0 +1,9 @@
+version: '2'
+catalog:
+  name: "OctoDat"
+  version: "0.0.1"
+  description: "Data Management System for the Elise project"
+services:
+  octodat:
+    scale: 1
+start_on_create: true

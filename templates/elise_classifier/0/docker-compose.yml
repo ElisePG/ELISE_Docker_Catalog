@@ -1,0 +1,11 @@
+version: '3.2'
+services:
+  elise_classifier:
+    image: classifier
+    build:
+        context: ./classifier
+    ports:
+      - target: 5001
+        published: 5001
+        protocol: udp
+        mode: host
