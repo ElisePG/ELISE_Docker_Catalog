@@ -12,6 +12,8 @@ from keras.optimizers import Adadelta
 from keras import backend as K
 import tensorflow as tf
 import numpy as np
+import logging
+
 
 def precision(y_true, y_pred):
    """Precision metric.    Only computes a batch-wise average of precision.    Computes the precision, a metric for multi-label classification of
@@ -72,37 +74,43 @@ class EliseDataUDP(DatagramProtocol):
 
     def startProtocol(self):
         self.transport.socket.setsockopt(SOL_SOCKET, SO_BROADCAST, True)
+
+    def __init__(self):
+        logging.info("---Startup---")
+        logging.info("---Loading Model---")
         self.model = load_model('model.h5', custom_objects={'fmeasure': fmeasure})
+        logging.info("---Getting Graph---")
         self.graph = tf.get_default_graph()
-        print("---API online---")
+        logging.info("---API online---")
 
     def datagramReceived(self, datagram, address):
         datalist = str(datagram, encoding="utf-8").split(";")
-        if datalist[0] == "ELISE_DATA":
-            if "Temperature" in datalist:
-                self.message_buffer["Temperature"].extend([datalist[6] for i in range(75)])
-            if "GSR" in datalist:
-                self.message_buffer["GSR"].extend(datalist[8].split(",")[:-1])
-            if "EOG1" in datalist:
-                self.message_buffer["EOG1"].extend(datalist[10].split(",")[:-1])
-            if "EOG2" in datalist:
-                self.message_buffer["EOG2"].extend(datalist[7].split(",")[:-1])
-            if "EEG1" in datalist:
-                self.message_buffer["EEG1"].extend(datalist[9].split(",")[:-1])
-            if "EEG2" in datalist:
-                self.message_buffer["EEG2"].extend(datalist[6].split(",")[:-1])
-            if "RED_RAW" in datalist:
-                self.message_buffer["RED_raw"].extend(datalist[8].split(",")[:-1])
-            if "IR_RAW" in datalist:
-                self.message_buffer["IR_raw"].extend(datalist[7].split(",")[:-1])
+        if "Temperature" in datalist:
+            self.message_buffer["Temperature"].extend([datalist[7][:-1] for i in range(75)])
+        if "GSR" in datalist:
+            self.message_buffer["GSR"].extend(datalist[9].split(",")[:-1])
+        if "EOG1" in datalist:
+            self.message_buffer["EOG1"].extend(datalist[11].split(",")[:-1])
+        if "EOG2" in datalist:
+            self.message_buffer["EOG2"].extend(datalist[7].split(",")[:-1])
+        if "EEG1" in datalist:
+            self.message_buffer["EEG1"].extend(datalist[9].split(",")[:-1])
+        if "EEG2" in datalist:
+            self.message_buffer["EEG2"].extend(datalist[7].split(",")[:-1])
+        if "RED_RAW" in datalist:
+            self.message_buffer["RED_raw"].extend(datalist[9].split(",")[:-1])
+        if "IR_RAW" in datalist:
+            self.message_buffer["IR_raw"].extend(datalist[7].split(",")[:-1])
 
         if all(len(self.message_buffer[key]) > 416 for key in self.message_buffer.keys()):
             with self.graph.as_default():
                 self.model._make_predict_function()
-                prediction = self.model.predict(np.reshape(np.array([message_buffer["Temperature"], message_buffer["GSR"], message_buffer["EOG1"], message_buffer["EOG2"], message_buffer["EEG1"], message_buffer["EEG2"], message_buffer["RED_raw"], message_buffer["IR_raw"], message_buffer["EEG2"],]), (1, 416, 9, 1,)))
+                prediction = self.model.predict(np.reshape(np.array([self.message_buffer["Temperature"][:416], self.message_buffer["GSR"][:416], self.message_buffer["EOG1"][:416], self.message_buffer["EOG2"][:416], self.message_buffer["EEG1"][:416], self.message_buffer["EEG2"][:416], self.message_buffer["RED_raw"][:416], self.message_buffer["IR_raw"][:416], self.message_buffer["EEG2"][:416],]), (1, 416, 9, 1,)))
                 for entry in self.message_buffer.keys():
                     self.message_buffer[entry] = self.message_buffer[entry][416:]
-                self.transport.write("ELISE_PREDICTION;{}".format(prediction), ('255.255.255.255', 5002))
+                print(prediction[0])
+                #print([len(entry) for entry in self.message_buffer])
+                self.transport.write(bytes("ELISE_PREDICTION;{}".format(prediction[0]), encoding="utf-8"), ('255.255.255.255', 5002))
               
 
 def main():
